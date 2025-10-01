@@ -301,7 +301,7 @@ if st.session_state.agreement_accepted:
                                     # Styles
                                     styles = getSampleStyleSheet()
                                     styles.add(ParagraphStyle(name='Justify', alignment=TA_JUSTIFY, fontSize=10, leading=14))
-                                    styles.add(ParagraphStyle(name='Title', fontSize=16, alignment=TA_LEFT, spaceAfter=12, bold=True))
+                                    styles.add(ParagraphStyle(name='CustomTitle', fontSize=16, alignment=TA_LEFT, spaceAfter=12, bold=True))
                                     
                                     # Add content
                                     current_date = datetime.now().strftime("%B %d, %Y")
@@ -327,7 +327,7 @@ if st.session_state.agreement_accepted:
                                     elements.append(Spacer(1, 0.3*inch))
                                     
                                     # Add signature section
-                                    elements.append(Paragraph("<b>SIGNATURES</b>", styles['Title']))
+                                    elements.append(Paragraph("<b>SIGNATURES</b>", styles['CustomTitle']))
                                     elements.append(Spacer(1, 0.3*inch))
                                     
                                     # Save signature image
