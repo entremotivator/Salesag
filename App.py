@@ -121,7 +121,7 @@ Date: __________________________
 """
 
 with st.expander("📜 View Full Agreement"):
-    st.text_area("Agreement Content", agreement_text, height=600)
+    st.markdown(agreement_text.replace("\n", "  \n"))  # preserve line breaks
 
 st.subheader("✍️ Please Sign Below")
 
