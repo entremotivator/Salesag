@@ -11,6 +11,12 @@ import os
 from datetime import datetime
 from PIL import Image
 import io
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+import re
 
 # Page configuration
 st.set_page_config(
@@ -18,6 +24,17 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="collapsed"
 )
+
+# Load email credentials from secrets
+try:
+    EMAIL_ADDRESS = st.secrets["email"]["sender_email"]
+    EMAIL_PASSWORD = st.secrets["email"]["password"]
+    SMTP_SERVER = st.secrets["email"]["smtp_server"]
+    PORT = st.secrets["email"]["port"]
+    ADMIN_EMAIL = "Entremotivator@gmail.com"
+except Exception as e:
+    st.error("⚠️ Email configuration not found. Please set up email credentials in Streamlit secrets.")
+    EMAIL_ADDRESS = None
 
 # Custom CSS for better styling
 st.markdown("""
@@ -83,6 +100,8 @@ if 'rep_name' not in st.session_state:
     st.session_state.rep_name = ""
 if 'rep_business' not in st.session_state:
     st.session_state.rep_business = ""
+if 'rep_email' not in st.session_state:
+    st.session_state.rep_email = ""
 if 'signature_confirmed' not in st.session_state:
     st.session_state.signature_confirmed = False
 
@@ -201,7 +220,7 @@ Business Name (if applicable): __________________
 Date: __________________________
 """
 
-# Step 1: Review Agreement
+# Agreement text
 st.markdown("## Step 1: Review the Agreement")
 st.markdown('<div class="info-box">📋 Please carefully review all terms and conditions before proceeding.</div>', unsafe_allow_html=True)
 
@@ -213,6 +232,108 @@ agreement_checkbox = st.checkbox(
     value=st.session_state.agreement_accepted
 )
 st.session_state.agreement_accepted = agreement_checkbox
+
+# Function to validate email
+def is_valid_email(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+# Function to send email with PDF attachment
+def send_agreement_email(recipient_email, rep_name, rep_business, pdf_data, pdf_filename):
+    """Send signed agreement via email"""
+    try:
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = recipient_email
+        msg['Subject'] = f"Signed Agreement - {rep_name} - ATM Agency"
+        
+        # Email body
+        body = f"""
+Dear {rep_name},
+
+Thank you for signing the Independent AI Business Owner Agreement with ATM Agency!
+
+Your signed agreement is attached to this email for your records.
+
+Agreement Details:
+- Name: {rep_name}
+- Business: {rep_business if rep_business else 'N/A'}
+- Date Signed: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+
+Welcome to the ATM Agency team! We're excited to work with you.
+
+If you have any questions, please don't hesitate to reach out.
+
+Best regards,
+ATM Agency Team
+Artificial Intelligence Technology Marketing Agency
+        """
+        
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Attach PDF
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(pdf_data)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename={pdf_filename}')
+        msg.attach(part)
+        
+        # Send email
+        server = smtplib.SMTP(SMTP_SERVER, PORT)
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        
+        return True
+    except Exception as e:
+        st.error(f"Email error: {str(e)}")
+        return False
+
+# Function to send admin notification
+def send_admin_notification(rep_name, rep_email, rep_business, pdf_data, pdf_filename):
+    """Send notification to admin with signed agreement"""
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = ADMIN_EMAIL
+        msg['Subject'] = f"New Agreement Signed - {rep_name}"
+        
+        body = f"""
+New Independent AI Business Owner Agreement Signed
+
+Representative Details:
+- Name: {rep_name}
+- Email: {rep_email}
+- Business: {rep_business if rep_business else 'N/A'}
+- Date Signed: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+
+The signed agreement is attached to this email.
+
+ATM Agency System
+        """
+        
+        msg.attach(MIMEText(body, 'plain'))
+        
+        # Attach PDF
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(pdf_data)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename={pdf_filename}')
+        msg.attach(part)
+        
+        # Send email
+        server = smtplib.SMTP(SMTP_SERVER, PORT)
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.send_message(msg)
+        server.quit()
+        
+        return True
+    except Exception as e:
+        st.error(f"Admin notification error: {str(e)}")
+        return False
 
 # Step 2: Enter Information
 if st.session_state.agreement_accepted:
@@ -231,16 +352,30 @@ if st.session_state.agreement_accepted:
         st.session_state.rep_name = rep_name
     
     with col2:
-        rep_business = st.text_input(
-            "Business Name (Optional)",
-            value=st.session_state.rep_business,
-            placeholder="ABC Consulting LLC",
-            help="Enter your business name if applicable"
+        rep_email = st.text_input(
+            "Email Address *",
+            value=st.session_state.rep_email,
+            placeholder="john.doe@example.com",
+            help="Enter your email address to receive the signed agreement"
         )
-        st.session_state.rep_business = rep_business
+        st.session_state.rep_email = rep_email
+    
+    rep_business = st.text_input(
+        "Business Name (Optional)",
+        value=st.session_state.rep_business,
+        placeholder="ABC Consulting LLC",
+        help="Enter your business name if applicable"
+    )
+    st.session_state.rep_business = rep_business
+    
+    # Validate email
+    email_valid = True
+    if st.session_state.rep_email and not is_valid_email(st.session_state.rep_email):
+        st.error("⚠️ Please enter a valid email address")
+        email_valid = False
     
     # Step 3: Digital Signature
-    if st.session_state.rep_name:
+    if st.session_state.rep_name and st.session_state.rep_email and email_valid:
         st.markdown("---")
         st.markdown("## Step 3: Digital Signature")
         st.markdown('<div class="warning-box">⚠️ <strong>Important:</strong> Your digital signature legally binds you to this agreement. Please sign clearly within the canvas below.</div>', unsafe_allow_html=True)
@@ -269,6 +404,7 @@ if st.session_state.agreement_accepted:
             st.markdown("---")
             st.markdown("**Signing as:**")
             st.markdown(f"📝 {st.session_state.rep_name}")
+            st.markdown(f"📧 {st.session_state.rep_email}")
             if st.session_state.rep_business:
                 st.markdown(f"🏢 {st.session_state.rep_business}")
             st.markdown(f"📅 {datetime.now().strftime('%B %d, %Y')}")
@@ -341,6 +477,7 @@ if st.session_state.agreement_accepted:
                                     elements.append(Spacer(1, 0.1*inch))
                                     elements.append(RLImage(signature_path, width=3*inch, height=0.75*inch))
                                     elements.append(Paragraph(f"<b>Name:</b> {st.session_state.rep_name}", styles['Normal']))
+                                    elements.append(Paragraph(f"<b>Email:</b> {st.session_state.rep_email}", styles['Normal']))
                                     if st.session_state.rep_business:
                                         elements.append(Paragraph(f"<b>Business Name:</b> {st.session_state.rep_business}", styles['Normal']))
                                     elements.append(Paragraph(f"<b>Date:</b> {current_date}", styles['Normal']))
@@ -348,17 +485,46 @@ if st.session_state.agreement_accepted:
                                     # Build PDF
                                     doc.build(elements)
                                     
-                                    # Read PDF for download
+                                    # Read PDF for download and email
                                     with open(pdf_path, "rb") as f:
                                         pdf_data = f.read()
                                     
-                                    # Success message and download button
-                                    st.markdown('<div class="success-box">✅ <strong>Success!</strong> Your agreement has been generated and is ready to download.</div>', unsafe_allow_html=True)
+                                    pdf_filename = f"ATM_Agency_Agreement_{st.session_state.rep_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf"
+                                    
+                                    # Send emails if configuration exists
+                                    if EMAIL_ADDRESS:
+                                        with st.spinner("Sending agreement via email..."):
+                                            # Send to representative
+                                            rep_email_sent = send_agreement_email(
+                                                st.session_state.rep_email,
+                                                st.session_state.rep_name,
+                                                st.session_state.rep_business,
+                                                pdf_data,
+                                                pdf_filename
+                                            )
+                                            
+                                            # Send to admin
+                                            admin_email_sent = send_admin_notification(
+                                                st.session_state.rep_name,
+                                                st.session_state.rep_email,
+                                                st.session_state.rep_business,
+                                                pdf_data,
+                                                pdf_filename
+                                            )
+                                            
+                                            if rep_email_sent and admin_email_sent:
+                                                st.markdown('<div class="success-box">✅ <strong>Success!</strong> Your agreement has been generated and sent to your email. A copy has also been sent to ATM Agency.</div>', unsafe_allow_html=True)
+                                            elif rep_email_sent:
+                                                st.markdown('<div class="success-box">✅ Agreement sent to your email! (Admin notification failed - please contact support)</div>', unsafe_allow_html=True)
+                                            else:
+                                                st.warning("⚠️ Email delivery failed. You can still download your agreement below.")
+                                    else:
+                                        st.markdown('<div class="success-box">✅ <strong>Success!</strong> Your agreement has been generated and is ready to download.</div>', unsafe_allow_html=True)
                                     
                                     st.download_button(
                                         label="⬇️ Download Signed Agreement",
                                         data=pdf_data,
-                                        file_name=f"ATM_Agency_Agreement_{st.session_state.rep_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d')}.pdf",
+                                        file_name=pdf_filename,
                                         mime="application/pdf",
                                         type="primary",
                                         use_container_width=True
@@ -375,7 +541,7 @@ if st.session_state.agreement_accepted:
                 else:
                     st.warning("⚠️ Please provide your signature in the canvas above before generating the PDF.")
     else:
-        st.info("👆 Please enter your name to proceed with the signature.")
+        st.info("👆 Please enter your name and email address to proceed with the signature.")
 
 # Footer
 st.markdown("---")
