@@ -129,6 +129,8 @@ st.markdown("""
         margin: 1rem 0;
         transition: all 0.3s ease;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        /* Making all text in cards black for better readability */
+        color: #000000;
     }
     
     .commission-card:hover {
@@ -147,7 +149,8 @@ st.markdown("""
     .commission-value {
         font-size: 2rem;
         font-weight: 700;
-        color: #1f2937;
+        /* Changed from #1f2937 to pure black */
+        color: #000000;
         margin: 0.5rem 0;
     }
     
@@ -218,18 +221,8 @@ if 'partner_email' not in st.session_state:
     st.session_state.partner_email = ""
 if 'partner_phone' not in st.session_state:
     st.session_state.partner_phone = ""
-if 'partner_address' not in st.session_state:
-    st.session_state.partner_address = ""
 if 'partnership_type' not in st.session_state:
     st.session_state.partnership_type = "Full Partnership"
-
-# Hero Section
-st.markdown("""
-    <div class="hero-section">
-        <div class="hero-title">🧹 Fit2Clean Partnership Agreement</div>
-        <div class="hero-subtitle">Join the Future of Cleaning Technology & Franchise Excellence</div>
-    </div>
-""", unsafe_allow_html=True)
 
 # Partnership Agreement Text
 agreement_text = """
@@ -567,7 +560,7 @@ with col1:
             <div class="commission-title">🏢 Franchise Sales</div>
             <div class="commission-value">10%</div>
             <p><strong>Finder's Fee</strong> on each franchise sold</p>
-            <p style="color: #6b7280; font-size: 0.9rem;">Example: $50,000 franchise = $5,000 commission</p>
+            <p style="color: #000000; font-size: 0.9rem;">Example: $50,000 franchise = $5,000 commission</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -576,7 +569,7 @@ with col1:
             <div class="commission-title">💻 Software Sales</div>
             <div class="commission-value">20%</div>
             <p><strong>Initial Sale Commission</strong> on software setup</p>
-            <p style="color: #6b7280; font-size: 0.9rem;">Example: $5,000 setup = $1,000 commission</p>
+            <p style="color: #000000; font-size: 0.9rem;">Example: $5,000 setup = $1,000 commission</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -586,7 +579,7 @@ with col2:
             <div class="commission-title">🔄 Platform Sellers</div>
             <div class="commission-value">10%</div>
             <p><strong>Recurring Profit Share</strong> from onboarded sellers</p>
-            <p style="color: #6b7280; font-size: 0.9rem;">Example: $10,000 profit = $1,000/month recurring</p>
+            <p style="color: #000000; font-size: 0.9rem;">Example: $10,000 profit = $1,000/month recurring</p>
         </div>
     """, unsafe_allow_html=True)
     
@@ -595,7 +588,7 @@ with col2:
             <div class="commission-title">📱 Software Subscriptions</div>
             <div class="commission-value">5%</div>
             <p><strong>Recurring Revenue</strong> on CRM subscriptions</p>
-            <p style="color: #6b7280; font-size: 0.9rem;">Example: $200/month = $10/month recurring</p>
+            <p style="color: #000000; font-size: 0.9rem;">Example: $200/month = $10/month recurring</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -1070,7 +1063,7 @@ if st.session_state.agreement_accepted:
         st.info("👆 Please complete all required fields (Name and Email) to proceed with the signature.")
 
 # Footer
-st.markdown("""
+st.markdown(f"""
     <div class="footer-section">
         <h3 style="color: #667eea; margin-bottom: 1rem;">🧹 Fit2Clean, LLC</h3>
         <p style="font-size: 1.1rem; margin-bottom: 0.5rem;"><strong>Cleaning Technology & Franchise Excellence</strong></p>
@@ -1085,4 +1078,4 @@ st.markdown("""
             © {datetime.now().year} Fit2Clean, LLC. All rights reserved.
         </p>
     </div>
-""".format(datetime.now().year), unsafe_allow_html=True)
+""", unsafe_allow_html=True)
